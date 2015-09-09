@@ -2,7 +2,7 @@ import json
 import requests
 import urllib
 
-from bottle import Bottle, response, error, request
+from bottle import Bottle, response, request
 from bottle.ext.mongo import MongoPlugin
 
 
@@ -97,7 +97,7 @@ def index(mongodb, mdbid):
     return resp_text
 
 
-@error(404)
+@app.error(404)
 def error404(error):
     return u"I'm sorry, there is nothing here"
 
