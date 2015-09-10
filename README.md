@@ -8,7 +8,7 @@ Prerequisites:
 Installation
 ============
 
-Run the following command in the project directory that you want to install (api or app):
+Run the following command in the project directory that you want to install (`api` or `app`):
 
     pip install -r requirements.txt
 
