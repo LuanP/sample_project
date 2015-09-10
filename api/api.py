@@ -2,6 +2,7 @@ import json
 import requests
 import urllib
 
+from bson.json_util import dumps
 from bottle import Bottle, response, request
 from bottle.ext.mongo import MongoPlugin
 
@@ -14,7 +15,7 @@ BASE_URL = 'http://www.omdbapi.com/?'
 TYPE_OPTIONS = ('movie', 'series', 'episode')
 
 
-@app.route('/search/', method='GET')
+@app.get('/search/', method='GET')
 def search(mongodb):
     """
     searches for movies, series and episodes with a provided `query`.
@@ -34,14 +35,14 @@ def search(mongodb):
     type_ = request.query.type
 
     if not query:
+        response.status = 400
         return json.dumps({
-            'status': u'error',
-            'message': u'"query" not provided'
+            'message': u'"query" was not provided'
         })
 
     if type_ and type_ not in TYPE_OPTIONS:
+        response.status = 400
         return json.dumps({
-            'status': u'error',
             'message': u'invalid "type". Options are: movie, series, episode'
         })
 
@@ -55,23 +56,24 @@ def search(mongodb):
     else:
         params = urllib.urlencode(params_dict)
 
-        resp_text = requests.get(u'{}{}'.format(BASE_URL, params)).text
-        resp = json.loads(resp_text)
+        resp = json.loads(requests.get(u'{}{}'.format(BASE_URL, params)).text)
 
         if resp.get('Response', True) is False:
             return json.dumps({
-                'status': u'error',
+                'status': u'no_results',
                 'message': u'no results found',
             })
 
-        params_dict['result'] = resp['Search']
+        result = resp['Search']
+        params_dict['result'] = result
         mongodb['queries'].insert_one(params_dict)
 
+        resp_text = json.dumps(result)
     return resp_text
 
 
-@app.route('/movies/<mdbid>', method='GET')
-def index(mongodb, mdbid):
+@app.get('/detail/<mdbid>/', method='GET')
+def index(mongodb, imdbid):
     """
     searches for movies, series and episodes by `imdb id`.
 
@@ -80,13 +82,13 @@ def index(mongodb, mdbid):
 
     results are stored in a 'data' collection in mongodb for future use
     """
-    movie = mongodb['data'].find_one({'imdbID': mdbid})
+    movie = mongodb['data'].find_one({'imdbID': imdbid})
 
     if movie:
         movie.pop('_id')
         resp_text = json.dumps(movie)
     else:
-        params = urllib.urlencode({'i': mdbid})
+        params = urllib.urlencode({'i': imdbid})
         resp_text = requests.get(u'{}{}'.format(BASE_URL, params)).text
         resp = json.loads(resp_text)
         # save response if ok
@@ -95,6 +97,36 @@ def index(mongodb, mdbid):
 
     response.content_type = 'application/json'
     return resp_text
+
+
+@app.get('/favorites/')
+def list_favorites(mongodb):
+    """
+    retrieve all the favorites saved
+    """
+    favorites = mongodb['favorites'].find()
+    return dumps(favorites)
+
+
+@app.post('/favorites/add/')
+def add_favorite(mongodb):
+    """
+    saves a favorite movie, series or episode in db
+    """
+    data = dict(request.POST.items())
+    mongodb['favorites'].insert_one(data)
+    response.status = 201  # CREATED status response
+    return data
+
+
+@app.delete('/favorites/delete/')
+def delete_favorite(mongodb):
+    """
+    deletes a favorite movie, series or episode in db
+    """
+    imdbid = request.POST.get('imdbid')
+    mongodb['favorites'].delete_one({'imdbID': imdbid})
+    return ''
 
 
 @app.error(404)
