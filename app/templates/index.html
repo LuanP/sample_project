@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/static/js/jquery-2.1.4.min.js"></script>
+<script>
+
+  function create_result_box ( result ) {
+    /*
+    result is a dictionary like:
+
+      {
+        "imdbID": "tt0325710",
+        "Year": "2003",
+        "Type": "movie",
+        "Title": "The Last Samurai"
+      }
+
+    */
+    var $div = $('<div>').attr('rel', result.imdbID);
+
+    var $title = $('<p>').addClass('title').append('Title');
+    var $type = $('<p>').addClass('type').append('Type');
+    var $year = $('<p>').addClass('year').append('Year');
+
+    $div.append($title);
+    $div.append($type);
+    $div.append($year);
+
+    return $div;
+  }
+
+  $(function () {
+
+    // search
+    $('form#search').submit(function ( e ) {
+      e.preventDefault();
+
+      var jqxhr = $.ajax({
+        url: $(this).attr('action'),
+        data: $(this).serialize(),
+        contentType: "application/json; charset=utf-8",
+        // FIXME: data in jsonpCallback function is returning as undefined
+        //
+        // jsonpCallback: function ( data ) {
+        //   var $results = $('div.results-box').empty();
+        //   if (data.status != undefined && data.status == 'no_results') {
+        //     $results.append(data.message);
+        //   } else {
+        //     // load results
+        //     $(data).each(function ( result ) {
+        //       var $box = create_result_box(result);
+        //       $results.append($box);
+        //     });
+        //   }
+        // },
+        crossDomain: true,
+        async: false,
+        dataType: "jsonp"
+      });
+
+      jqxhr.fail(function ( data ) {
+        var $results = $('div.results-box').empty();
+        if (data.message != undefined) {
+          $results.append(data.message);
+        }
+      });
+
+      return false;
+    });
+
+    // TODO: load favorites' list
+    // var $favorites = $('.favorites-box.to-load');
+    // var jqxhr = $.ajax({
+    //   url: $favorites.attr('rel'),
+    // });
+    // jqxhr.done(function ( data ) {});
+    // jqxhr.fail(function ( data ) {});
+
+    // TODO: add a favorite
+    // TODO: delete a favorite
+  });
+</script>
+</head>
+<body>
+  <form action="{{ search_url }}" id="search">
+    <input type="text" placeholder="Search for movies, series or episodes..." name="query">
+    <p><strong>You can also select a type to improve the filtering of the results</strong></p>
+    <input type="radio" name="type" value="movie">Movie<br />
+    <input type="radio" name="type" value="series">Series<br />
+    <input type="radio" name="type" value="episode">Episode<br />
+    <br />
+    <input type="submit" value="Search">
+  </form>
+
+  <div class="favorites-box to-load" rel="{{ favorites_list_url }}"></div>
+
+  <div class="results-box"></div>
+
+</body>
+</html>
