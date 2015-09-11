@@ -9,13 +9,17 @@
   function get_opts_box (imdbid) {
     var $details = $('<a>').attr('href', 'javascript:void(0);').addClass('get-detail').text('More...');
     var $opts_box = $('<p>').addClass('options').append($details);
+    $opts_box.append(' | ');
     if (favorites_list.indexOf(imdbid) < 0) {  // not in favorites list
       var $favorite = $('<a>').attr('href', 'javascript:void(0);').addClass('add-favorite').text(
         'Add favorite'
       );
-      $opts_box.append(' | ');
-      $opts_box.append($favorite);
+    } else {
+      var $favorite = $('<a>').attr('href', 'javascript:void(0);').addClass('delete-favorite').text(
+        'Delete favorite'
+      );
     }
+    $opts_box.append($favorite);
 
     return $opts_box;
   }
@@ -49,6 +53,22 @@
     $box.append($div);
   }
 
+  function load_favorites () {
+    var $favorites = $('.favorites-box').empty();
+    $favorites.append('<h1>My favorites</h1>');
+    var jqxhr = $.ajax({
+      url: $favorites.attr('rel'),
+      crossDomain: true
+    });
+    jqxhr.done(function ( data ) {
+      // load results
+      $(data).each(function ( idx, result ) {
+        favorites_list.push(result.imdbID);
+        fill_box(result, $favorites);
+      });
+    });
+  }
+
   $(function () {
 
     // search
@@ -64,6 +84,7 @@
 
       jqxhr.done(function ( data ) {
         var $results = $('div.results-box').empty();
+        $results.append('<h1>Search results</h1>');
         if (data.status != undefined && data.status == 'no_results') {
           $results.append(data.message);
         } else {
@@ -85,21 +106,56 @@
     });
 
     // load favorites' list
-    var $favorites = $('.favorites-box.to-load');
-    var jqxhr = $.ajax({
-      url: $favorites.attr('rel'),
-      crossDomain: true
+    load_favorites();
+
+    // add a favorite
+    $('body').on('click', '.add-favorite', function () {
+      var $favorited = $(this).parent();
+      var jqxhr = $.ajax({
+        url: '{{ favorites_add_url }}',
+        method: 'POST',
+        crossDomain: true,
+        data: {
+          'imdbID': $favorited.attr('rel'),
+          'Title': $favorited.find('.title').text(),
+          'Type': $favorited.find('.type').text(),
+          'Year': $favorited.find('.year').text(),
+        }
+      });
+      jqxhr.done(function () {
+        load_favorites();
+      });
     });
-    jqxhr.done(function ( data ) {
-      var $results = $('div.results-box').empty();
-      // load results
-      $(data).each(function ( idx, result ) {
-        fill_box(result, $favorites);
+    // FIXME: delete a favorite - returning 405
+    $('body').on('click', '.delete-favorite', function () {
+      var $favorited = $(this).parents('div');
+      var jqxhr = $.ajax({
+        url: '{{ favorites_delete_url }}',
+        method: 'DELETE',
+        crossDomain: true,
+        data: {'imdbid': $favorited.attr('rel')}
+      });
+      jqxhr.done(function () {
+        load_favorites();
       });
     });
 
-    // TODO: add a favorite
-    // TODO: delete a favorite
+    // get detail
+    $('body').on('click', '.get-detail', function () {
+      var url = '{{ detail_url }}'.replace('__imdbid__', $(this).parents('div').attr('rel'));
+      var jqxhr = $.ajax({
+        url: url,
+        crossDomain: true,
+      });
+      jqxhr.done(function ( data ) {
+        var $results = $('div.results-box').empty();
+        $results.append('<h1>Search results</h1>');
+        // load detail
+        // TODO: change fill_box function to show all data when in detail
+        fill_box(data, $results);
+      });
+    });
+
   });
 </script>
 </head>
@@ -114,7 +170,7 @@
     <input type="submit" value="Search">
   </form>
 
-  <div class="favorites-box to-load" rel="{{ favorites_list_url }}"></div>
+  <div class="favorites-box" rel="{{ favorites_list_url }}"></div>
 
   <div class="results-box"></div>
 

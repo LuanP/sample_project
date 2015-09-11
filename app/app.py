@@ -22,7 +22,7 @@ STATIC_ROOT = os.path.join(PROJECT_DIR, 'static')
 def index():
     return {
         'search_url': urljoin(API_URL, '/search/'),
-        'detail_url': urljoin(API_URL, '/detail/0/'),
+        'detail_url': urljoin(API_URL, '/detail/__imdbid__/'),
         'favorites_list_url': urljoin(API_URL, '/favorites/'),
         'favorites_add_url': urljoin(API_URL, '/favorites/add/'),
         'favorites_delete_url': urljoin(API_URL, '/favorites/delete/'),
