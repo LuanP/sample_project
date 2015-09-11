@@ -4,7 +4,23 @@
 <script src="/static/js/jquery-2.1.4.min.js"></script>
 <script>
 
-  function create_result_box ( result ) {
+  var favorites_list = [];
+
+  function get_opts_box (imdbid) {
+    var $details = $('<a>').attr('href', 'javascript:void(0);').addClass('get-detail').text('More...');
+    var $opts_box = $('<p>').addClass('options').append($details);
+    if (favorites_list.indexOf(imdbid) < 0) {  // not in favorites list
+      var $favorite = $('<a>').attr('href', 'javascript:void(0);').addClass('add-favorite').text(
+        'Add favorite'
+      );
+      $opts_box.append(' | ');
+      $opts_box.append($favorite);
+    }
+
+    return $opts_box;
+  }
+
+  function fill_box ( result, $box ) {
     /*
     result is a dictionary like:
 
@@ -18,15 +34,19 @@
     */
     var $div = $('<div>').attr('rel', result.imdbID);
 
-    var $title = $('<p>').addClass('title').append('Title');
-    var $type = $('<p>').addClass('type').append('Type');
-    var $year = $('<p>').addClass('year').append('Year');
+    var $title = $('<p>').addClass('title').append(result.Title);
+    var $type = $('<p>').addClass('type').append(result.Type);
+    var $year = $('<p>').addClass('year').append(result.Year);
+
+    var $opts_box = get_opts_box(result.imdbID);
 
     $div.append($title);
     $div.append($type);
     $div.append($year);
+    $div.append($opts_box);
+    $div.append($('<br>'));
 
-    return $div;
+    $box.append($div);
   }
 
   $(function () {
@@ -38,24 +58,20 @@
       var jqxhr = $.ajax({
         url: $(this).attr('action'),
         data: $(this).serialize(),
-        contentType: "application/json; charset=utf-8",
-        // FIXME: data in jsonpCallback function is returning as undefined
-        //
-        // jsonpCallback: function ( data ) {
-        //   var $results = $('div.results-box').empty();
-        //   if (data.status != undefined && data.status == 'no_results') {
-        //     $results.append(data.message);
-        //   } else {
-        //     // load results
-        //     $(data).each(function ( result ) {
-        //       var $box = create_result_box(result);
-        //       $results.append($box);
-        //     });
-        //   }
-        // },
+        method: "GET",
         crossDomain: true,
-        async: false,
-        dataType: "jsonp"
+      });
+
+      jqxhr.done(function ( data ) {
+        var $results = $('div.results-box').empty();
+        if (data.status != undefined && data.status == 'no_results') {
+          $results.append(data.message);
+        } else {
+          // load results
+          $(data).each(function ( idx, result ) {
+            fill_box(result, $results);
+          });
+        }
       });
 
       jqxhr.fail(function ( data ) {
@@ -68,13 +84,19 @@
       return false;
     });
 
-    // TODO: load favorites' list
-    // var $favorites = $('.favorites-box.to-load');
-    // var jqxhr = $.ajax({
-    //   url: $favorites.attr('rel'),
-    // });
-    // jqxhr.done(function ( data ) {});
-    // jqxhr.fail(function ( data ) {});
+    // load favorites' list
+    var $favorites = $('.favorites-box.to-load');
+    var jqxhr = $.ajax({
+      url: $favorites.attr('rel'),
+      crossDomain: true
+    });
+    jqxhr.done(function ( data ) {
+      var $results = $('div.results-box').empty();
+      // load results
+      $(data).each(function ( idx, result ) {
+        fill_box(result, $favorites);
+      });
+    });
 
     // TODO: add a favorite
     // TODO: delete a favorite
