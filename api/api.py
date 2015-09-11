@@ -115,6 +115,7 @@ def list_favorites(mongodb):
     retrieve all the favorites saved
     """
     favorites = mongodb['favorites'].find()
+    response.content_type = 'application/json'
     return dumps(favorites)
 
 
@@ -126,7 +127,8 @@ def add_favorite(mongodb):
     data = dict(request.POST.items())
     mongodb['favorites'].insert_one(data)
     response.status = 201  # CREATED status response
-    return data
+    response.content_type = 'application/json'
+    return json.dumps(data)
 
 
 @app.delete('/favorites/delete/')
