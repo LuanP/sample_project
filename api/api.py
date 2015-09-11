@@ -21,6 +21,8 @@ def enable_cors():
     enables Cross-Origin Resource Sharing
     """
     response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Request-Headers'] = 'X-PINGOTHER'
+    response.headers['Access-Control-Max-Age'] = '1728000'
     response.headers['Access-Control-Request-Methods'] = ('GET, POST, '
                                                           'OPTIONS, DELETE')
 
@@ -128,7 +130,7 @@ def add_favorite(mongodb):
     mongodb['favorites'].insert_one(data)
     response.status = 201  # CREATED status response
     response.content_type = 'application/json'
-    return json.dumps(data)
+    return dumps(data)
 
 
 @app.delete('/favorites/delete/')
