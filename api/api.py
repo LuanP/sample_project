@@ -72,8 +72,8 @@ def search(mongodb):
     return resp_text
 
 
-@app.get('/detail/<mdbid>/', method='GET')
-def index(mongodb, imdbid):
+@app.get('/detail/<imdbid>/', method='GET')
+def detail(mongodb, imdbid):
     """
     searches for movies, series and episodes by `imdb id`.
 
