@@ -15,6 +15,16 @@ BASE_URL = 'http://www.omdbapi.com/?'
 TYPE_OPTIONS = ('movie', 'series', 'episode')
 
 
+@app.hook('after_request')
+def enable_cors():
+    """
+    enables Cross-Origin Resource Sharing
+    """
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Request-Methods'] = ('GET, POST, '
+                                                          'OPTIONS, DELETE')
+
+
 @app.get('/search/', method='GET')
 def search(mongodb):
     """
